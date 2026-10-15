@@ -5,10 +5,11 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.exceptions import LionError, NotFoundError
+from app.exceptions import LionError, NotFoundError, SensitiveDataError
 
 STATUS_BY_ERROR: dict[type[LionError], int] = {
     NotFoundError: status.HTTP_404_NOT_FOUND,
+    SensitiveDataError: status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 

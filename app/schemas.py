@@ -28,7 +28,9 @@ class DocumentOut(BaseModel):
 
 
 class AskRequest(BaseModel):
-    """Pergunta do usuário."""
+    """Pergunta do usuário (espaços nas pontas são removidos antes de validar)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     question: str = Field(..., min_length=3, max_length=500, description="Pergunta sobre IRPF")
     top_k: int | None = Field(None, ge=1, le=10, description="Quantidade de trechos recuperados")

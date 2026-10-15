@@ -8,6 +8,7 @@ from app.llm.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.document_repository import DocumentRepository
 from app.schemas import AskRequest, AskResponse, Citation
+from app.services.guardrails import ensure_no_personal_data
 from app.services.retriever import BM25Retriever, ScoredChunk
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,11 @@ class AskService:
         self._default_top_k = default_top_k
 
     def ask(self, request: AskRequest) -> AskResponse:
-        """Responde à pergunta com base nos trechos recuperados."""
+        """Responde à pergunta com base nos trechos recuperados.
+
+        Levanta `SensitiveDataError` (sem gravar nada) se a pergunta tiver dado pessoal.
+        """
+        ensure_no_personal_data(request.question)
         top_k = request.top_k or self._default_top_k
         retrieved = self._retriever.search(request.question, self._documents.all_chunks(), top_k)
 

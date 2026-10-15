@@ -19,3 +19,15 @@ class DocumentNotFoundError(NotFoundError):
     def __init__(self, document_id: int) -> None:
         super().__init__(f"Documento {document_id} não encontrado.")
         self.document_id = document_id
+
+
+class SensitiveDataError(LionError):
+    """Texto com dado pessoal (CPF, e-mail ou telefone); a mensagem não ecoa o dado."""
+
+    def __init__(self, kind: str, field: str = "pergunta") -> None:
+        super().__init__(
+            f"Bloqueado: o campo '{field}' parece conter dado pessoal ({kind}). "
+            "A LION API não processa CPF, e-mail ou telefone; remova o dado e envie novamente."
+        )
+        self.kind = kind
+        self.field = field
