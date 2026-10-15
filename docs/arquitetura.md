@@ -23,7 +23,6 @@ flowchart LR
         P{{Provider}}
         F[fake]
         G[groq]
-        M[gemini]
     end
 
     subgraph Repo["repositories"]
@@ -36,7 +35,7 @@ flowchart LR
     AS --> GIn
     AS --> RET --> DB
     AS --> P
-    P --> F & G & M
+    P --> F & G
     AS --> GOut
     R4 --> DB
 ```
