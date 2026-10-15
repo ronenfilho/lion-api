@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.config import Settings
@@ -37,7 +39,9 @@ def test_pergunta_curta_demais_retorna_422(client: TestClient) -> None:
     assert client.post("/ask", json={"question": "IR"}).status_code == 422
 
 
-def test_falha_do_provedor_nao_derruba_a_api(tmp_path, sample_payloads) -> None:
+def test_falha_do_provedor_nao_derruba_a_api(
+    tmp_path: Path, sample_payloads: list[dict[str, str]]
+) -> None:
     class BrokenProvider:
         name = "broken"
 
@@ -47,7 +51,10 @@ def test_falha_do_provedor_nao_derruba_a_api(tmp_path, sample_payloads) -> None:
     settings = Settings(database_path=str(tmp_path / "db.sqlite3"))
     with TestClient(create_app(settings, provider=BrokenProvider())) as client:
         client.post("/documents", json=sample_payloads[0])
-        body = client.post("/ask", json={"question": "dedução de despesas médicas"}).json()
+        response = client.post("/ask", json={"question": "dedução de despesas médicas"})
 
+    body = response.json()
+    assert response.status_code == 200
     assert body["answer"] == LLM_UNAVAILABLE_ANSWER
+    assert body["provider"] == "broken"
     assert body["citations"]

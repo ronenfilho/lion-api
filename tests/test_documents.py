@@ -41,11 +41,14 @@ def test_consulta_documento_inexistente_retorna_404_com_mensagem(client: TestCli
     assert response.json() == {"detail": "Documento 999 não encontrado."}
 
 
-def test_remove_documento_retorna_204_e_some_da_lista(client: TestClient) -> None:
+def test_remove_documento_retorna_204_e_tira_trechos_do_indice(client: TestClient) -> None:
     created = client.post("/documents", json=DOC).json()
+    question = {"question": "O que diz o segundo parágrafo?"}
+    assert client.post("/ask", json=question).json()["grounded"] is True
 
     response = client.delete(f"/documents/{created['id']}")
 
     assert response.status_code == 204
     assert client.get("/documents").json() == []
+    assert client.post("/ask", json=question).json()["citations"] == []
     assert client.delete(f"/documents/{created['id']}").status_code == 404
