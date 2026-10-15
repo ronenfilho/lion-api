@@ -1,6 +1,11 @@
-"""Guardrails de entrada: bloqueio de dados pessoais antes de qualquer processamento."""
+"""Guardrails da LION API.
+
+- Entrada: bloqueia dados pessoais antes de qualquer processamento.
+- Saída: mantém só as citações `[n]` que apontam para trechos realmente recuperados.
+"""
 
 import re
+from dataclasses import dataclass
 
 from app.exceptions import SensitiveDataError
 
@@ -33,3 +38,33 @@ def ensure_no_personal_data(text: str, field: str = "pergunta") -> None:
     kind = detect_personal_data(text)
     if kind is not None:
         raise SensitiveDataError(kind, field)
+
+
+CITATION_PATTERN = re.compile(r"(\s*)\[(\d+)\]")
+
+
+@dataclass(frozen=True)
+class CheckedAnswer:
+    """Resposta com citações conferidas.
+
+    `sources` traz os índices (base 0) dos trechos citados, na ordem da primeira citação;
+    no texto, `[i]` passa a apontar para `sources[i - 1]`.
+    """
+
+    text: str
+    sources: list[int]
+
+
+def check_citations(answer: str, available: int) -> CheckedAnswer:
+    """Descarta citações inexistentes e renumera as válidas na ordem em que aparecem."""
+    renumbered: dict[int, int] = {}
+
+    def replace(match: re.Match[str]) -> str:
+        spaces, number = match.group(1), int(match.group(2))
+        if not 1 <= number <= available:
+            return ""
+        new_number = renumbered.setdefault(number, len(renumbered) + 1)
+        return f"{spaces}[{new_number}]"
+
+    text = CITATION_PATTERN.sub(replace, answer)
+    return CheckedAnswer(text=text, sources=[number - 1 for number in renumbered])

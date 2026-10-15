@@ -1,14 +1,13 @@
 """Fluxo de pergunta e resposta (RAG)."""
 
 import logging
-import re
 
 from app.llm.base import LLMError, LLMProvider
 from app.llm.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.document_repository import DocumentRepository
 from app.schemas import AskRequest, AskResponse, Citation
-from app.services.guardrails import ensure_no_personal_data
+from app.services.guardrails import check_citations, ensure_no_personal_data
 from app.services.retriever import BM25Retriever, ScoredChunk
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ LLM_UNAVAILABLE_ANSWER = (
     "O serviço de geração está indisponível no momento. "
     "Seguem os trechos mais relevantes encontrados nas fontes."
 )
-CITATION_PATTERN = re.compile(r"\[(\d+)\]")
 EXCERPT_MAX_CHARS = 300
 
 
@@ -58,13 +56,11 @@ class AskService:
             logger.exception("Falha no provedor %s; devolvendo só os trechos.", self._provider.name)
             return self._finish(request.question, LLM_UNAVAILABLE_ANSWER, retrieved, grounded=True)
 
-        cited = self._cited_chunks(answer, retrieved)
-        return self._finish(request.question, answer, cited, grounded=bool(cited))
-
-    def _cited_chunks(self, answer: str, retrieved: list[ScoredChunk]) -> list[ScoredChunk]:
-        """Mantém só os trechos citados na resposta como [n], na ordem da primeira citação."""
-        numbers = dict.fromkeys(int(n) for n in CITATION_PATTERN.findall(answer))
-        return [retrieved[n - 1] for n in numbers if 1 <= n <= len(retrieved)]
+        checked = check_citations(answer, len(retrieved))
+        if not checked.sources:
+            return self._finish(request.question, NO_BASIS_ANSWER, [], grounded=False)
+        cited = [retrieved[i] for i in checked.sources]
+        return self._finish(request.question, checked.text, cited, grounded=True)
 
     def _finish(
         self, question: str, answer: str, chunks: list[ScoredChunk], grounded: bool
