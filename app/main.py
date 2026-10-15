@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from app.api import ask_routes, document_routes
+from app.api.errors import register_error_handlers
 from app.config import Settings, load_settings
 from app.llm.base import LLMProvider
 from app.llm.factory import create_provider
@@ -49,6 +50,7 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
         """Indica se a API está no ar."""
         return HealthResponse(status="ok", timestamp=datetime.now(UTC))
 
+    register_error_handlers(app)
     app.include_router(document_routes.router)
     app.include_router(ask_routes.router)
     return app

@@ -34,8 +34,11 @@ def test_lista_e_consulta_documentos(client: TestClient) -> None:
     assert detail.json() == created
 
 
-def test_consulta_documento_inexistente_retorna_404(client: TestClient) -> None:
-    assert client.get("/documents/999").status_code == 404
+def test_consulta_documento_inexistente_retorna_404_com_mensagem(client: TestClient) -> None:
+    response = client.get("/documents/999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Documento 999 não encontrado."}
 
 
 def test_remove_documento_retorna_204_e_some_da_lista(client: TestClient) -> None:

@@ -1,12 +1,9 @@
 """Regras de negócio de documentos."""
 
+from app.exceptions import DocumentNotFoundError
 from app.repositories.document_repository import DocumentRepository
 from app.schemas import DocumentCreate, DocumentOut
 from app.services.chunking import split_into_chunks
-
-
-class DocumentNotFoundError(Exception):
-    """Documento inexistente."""
 
 
 class DocumentService:
