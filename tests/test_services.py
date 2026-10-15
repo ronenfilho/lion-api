@@ -36,3 +36,11 @@ def test_factory_sem_chave_cai_para_fake() -> None:
     provider = create_provider(Settings(llm_provider="groq", groq_api_key=""))
 
     assert isinstance(provider, FakeProvider)
+
+
+def test_retriever_encontra_trecho_em_corpus_com_um_so_trecho() -> None:
+    chunks = [StoredChunk(1, 1, "A", "despesas médicas com hospitais e dentistas")]
+
+    results = BM25Retriever().search("despesas médicas", chunks, top_k=3)
+
+    assert [r.chunk.id for r in results] == [1]

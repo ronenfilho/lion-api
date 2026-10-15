@@ -1,5 +1,6 @@
 """Recuperação de trechos por BM25."""
 
+import math
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -29,6 +30,19 @@ def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"[a-z0-9]+", without_accents) if t not in STOPWORDS]
 
 
+class _PositiveIdfBM25(BM25Okapi):
+    """BM25 com o IDF do Lucene, `log(1 + (N - n + 0.5) / (n + 0.5))`, sempre positivo.
+
+    O IDF clássico do `BM25Okapi` fica negativo ou nulo quando o termo aparece em metade
+    ou mais dos trechos — com corpus de 1 ou 2 trechos, nenhuma busca encontrava nada.
+    """
+
+    def _calc_idf(self, nd: dict[str, int]) -> None:
+        for word, freq in nd.items():
+            self.idf[word] = math.log(1 + (self.corpus_size - freq + 0.5) / (freq + 0.5))
+        self.average_idf = sum(self.idf.values()) / len(self.idf) if self.idf else 0.0
+
+
 class BM25Retriever:
     """Indexa os trechos a cada busca — suficiente para o corpus pequeno do MVP."""
 
@@ -37,7 +51,7 @@ class BM25Retriever:
         query_tokens = tokenize(query)
         if not chunks or not query_tokens:
             return []
-        index = BM25Okapi([tokenize(chunk.text) for chunk in chunks])
+        index = _PositiveIdfBM25([tokenize(chunk.text) for chunk in chunks])
         scores = index.get_scores(query_tokens)
         ranked = sorted(zip(chunks, scores, strict=True), key=lambda pair: pair[1], reverse=True)
         return [ScoredChunk(chunk, float(score)) for chunk, score in ranked[:top_k] if score > 0]
