@@ -1,0 +1,34 @@
+# --- Segredos / configuração local ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- Ambiente virtual ---
+.venv/
+venv/
+
+# --- Testes / lint / cobertura ---
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Dados gerados em runtime (índice vetorial, banco local) ---
+var/
+*.sqlite3
+*.db
+
+# --- Editor / SO ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- Logs ---
+*.log
