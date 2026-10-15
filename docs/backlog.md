@@ -18,16 +18,18 @@
 
 ## Release 0.2 — Qualidade
 
-- [ ] **RF05 — Guardrail de entrada**
-  - Pergunta vazia ou com mais de 500 caracteres retorna **422**.
-  - Pergunta com CPF, e-mail ou telefone retorna **422** com mensagem explicando o bloqueio.
-- [ ] **RF06 — Guardrail de saída** (parcial na 0.1: resposta sem base e descarte de citação inválida já implementados — ver D06)
+- [x] **RF05 — Guardrail de entrada**
+  - Pergunta vazia (ou só com espaços) ou com mais de 500 caracteres retorna **422**.
+  - Pergunta com CPF (com ou sem pontuação), e-mail ou telefone retorna **422** com mensagem explicando o bloqueio, sem ecoar o dado (D08).
+- [x] **RF06 — Guardrail de saída** (D09)
   - Sem trechos relevantes, retorna resposta padrão "não encontrei base nas fontes" e `citations: []`.
-  - Citação que não corresponde a um trecho recuperado é descartada.
-- [ ] **RF07 — Feedback**
-  - `POST /answers/{id}/feedback` retorna **201**; `answer_id` inexistente retorna **404**.
-- [ ] Suíte pytest cobrindo CRUD, ask (provedor `fake`) e cenários de erro.
-- [ ] Ruff sem erros; GitHub Actions rodando lint + testes a cada push.
+  - Citação que não corresponde a um trecho recuperado é descartada (e removida do texto).
+  - Resposta sem nenhuma citação válida vira a resposta padrão, com `grounded: false`.
+- [x] **RF07 — Feedback** (D11)
+  - `POST /answers/{id}/feedback` com `useful` e `comment` opcional (até 500) retorna **201** com o registro; `answer_id` inexistente retorna **404**; comentário com dado pessoal retorna **422**.
+- [x] Exceções de domínio com handler central e mensagens de erro claras (D07).
+- [x] Suíte pytest cobrindo CRUD, ask (provedor `fake`), guardrails, feedback, `AskService` isolado, `GroqProvider` com HTTP simulado e cenários de erro (65 testes).
+- [x] Ruff sem erros (lint + formatação); GitHub Actions rodando lint + testes em Python 3.11 e 3.12 a cada push/PR (`.github/workflows/ci.yml`).
 
 ## Release 1.0 — Entrega final
 

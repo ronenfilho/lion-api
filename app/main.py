@@ -37,7 +37,7 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
     app = FastAPI(
         title="LION API",
         description="Assistente RAG para dúvidas de IRPF fundamentado em fontes oficiais da RFB.",
-        version="0.1.0",
+        version="0.2.0",
     )
     app.state.document_service = DocumentService(documents, settings.chunk_max_chars)
     app.state.ask_service = AskService(
