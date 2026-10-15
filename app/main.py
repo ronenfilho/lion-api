@@ -5,11 +5,16 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI(
-    title="LION API",
-    description="Assistente RAG para dúvidas de IRPF fundamentado em fontes oficiais da RFB.",
-    version="0.1.0",
-)
+from app.api import ask_routes, document_routes
+from app.config import Settings, load_settings
+from app.llm.base import LLMProvider
+from app.llm.factory import create_provider
+from app.repositories.answer_repository import AnswerRepository
+from app.repositories.database import connect
+from app.repositories.document_repository import DocumentRepository
+from app.services.ask_service import AskService
+from app.services.document_service import DocumentService
+from app.services.retriever import BM25Retriever
 
 
 class HealthResponse(BaseModel):
@@ -19,7 +24,34 @@ class HealthResponse(BaseModel):
     timestamp: datetime
 
 
-@app.get("/health", response_model=HealthResponse, tags=["infra"])
-def health() -> HealthResponse:
-    """Indica se a API está no ar."""
-    return HealthResponse(status="ok", timestamp=datetime.now(UTC))
+def create_app(settings: Settings | None = None, provider: LLMProvider | None = None) -> FastAPI:
+    """Monta a aplicação com suas dependências (injetáveis nos testes)."""
+    settings = settings or load_settings()
+    conn = connect(settings.database_path)
+    documents = DocumentRepository(conn)
+
+    app = FastAPI(
+        title="LION API",
+        description="Assistente RAG para dúvidas de IRPF fundamentado em fontes oficiais da RFB.",
+        version="0.1.0",
+    )
+    app.state.document_service = DocumentService(documents, settings.chunk_max_chars)
+    app.state.ask_service = AskService(
+        documents,
+        AnswerRepository(conn),
+        BM25Retriever(),
+        provider or create_provider(settings),
+        settings.default_top_k,
+    )
+
+    @app.get("/health", response_model=HealthResponse, tags=["infra"])
+    def health() -> HealthResponse:
+        """Indica se a API está no ar."""
+        return HealthResponse(status="ok", timestamp=datetime.now(UTC))
+
+    app.include_router(document_routes.router)
+    app.include_router(ask_routes.router)
+    return app
+
+
+app = create_app()
