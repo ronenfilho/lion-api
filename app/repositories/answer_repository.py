@@ -1,4 +1,4 @@
-"""Persistência das respostas geradas (base para o feedback da release 0.2)."""
+"""Persistência das respostas geradas (alvo do feedback)."""
 
 import sqlite3
 from datetime import UTC, datetime
@@ -19,3 +19,8 @@ class AnswerRepository:
                 (question, answer, int(grounded), provider, datetime.now(UTC).isoformat()),
             )
         return cur.lastrowid
+
+    def exists(self, answer_id: int) -> bool:
+        """Indica se a resposta foi registrada."""
+        row = self._conn.execute("SELECT 1 FROM answers WHERE id = ?", (answer_id,)).fetchone()
+        return row is not None

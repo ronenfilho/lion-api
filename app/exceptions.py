@@ -31,3 +31,11 @@ class SensitiveDataError(LionError):
         )
         self.kind = kind
         self.field = field
+
+
+class AnswerNotFoundError(NotFoundError):
+    """Resposta inexistente (ex.: feedback para um `answer_id` que não foi gerado)."""
+
+    def __init__(self, answer_id: int) -> None:
+        super().__init__(f"Resposta {answer_id} não encontrada.")
+        self.answer_id = answer_id

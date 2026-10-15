@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from app.api import ask_routes, document_routes
+from app.api import ask_routes, document_routes, feedback_routes
 from app.api.errors import register_error_handlers
 from app.config import Settings, load_settings
 from app.llm.base import LLMProvider
@@ -13,8 +13,10 @@ from app.llm.factory import create_provider
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.database import connect
 from app.repositories.document_repository import DocumentRepository
+from app.repositories.feedback_repository import FeedbackRepository
 from app.services.ask_service import AskService
 from app.services.document_service import DocumentService
+from app.services.feedback_service import FeedbackService
 from app.services.retriever import BM25Retriever
 
 
@@ -30,6 +32,7 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
     settings = settings or load_settings()
     conn = connect(settings.database_path)
     documents = DocumentRepository(conn)
+    answers = AnswerRepository(conn)
 
     app = FastAPI(
         title="LION API",
@@ -39,11 +42,12 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
     app.state.document_service = DocumentService(documents, settings.chunk_max_chars)
     app.state.ask_service = AskService(
         documents,
-        AnswerRepository(conn),
+        answers,
         BM25Retriever(),
         provider or create_provider(settings),
         settings.default_top_k,
     )
+    app.state.feedback_service = FeedbackService(answers, FeedbackRepository(conn))
 
     @app.get("/health", response_model=HealthResponse, tags=["infra"])
     def health() -> HealthResponse:
@@ -53,6 +57,7 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
     register_error_handlers(app)
     app.include_router(document_routes.router)
     app.include_router(ask_routes.router)
+    app.include_router(feedback_routes.router)
     return app
 
 

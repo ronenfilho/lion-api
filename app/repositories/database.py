@@ -24,6 +24,13 @@ CREATE TABLE IF NOT EXISTS answers (
     provider TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    answer_id INTEGER NOT NULL REFERENCES answers(id) ON DELETE CASCADE,
+    useful INTEGER NOT NULL,
+    comment TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 

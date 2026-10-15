@@ -54,3 +54,22 @@ class AskResponse(BaseModel):
     grounded: bool = Field(..., description="Se a resposta se apoia em trechos recuperados")
     citations: list[Citation]
     provider: str
+
+
+class FeedbackCreate(BaseModel):
+    """Avaliação de uma resposta do `/ask`."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    useful: bool = Field(..., description="Se a resposta foi útil")
+    comment: str | None = Field(None, max_length=500, description="Comentário opcional")
+
+
+class FeedbackOut(BaseModel):
+    """Feedback registrado."""
+
+    id: int
+    answer_id: int
+    useful: bool
+    comment: str | None
+    created_at: datetime
