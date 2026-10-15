@@ -1,6 +1,7 @@
 from app.config import Settings
 from app.llm.factory import create_provider
 from app.llm.fake import FakeProvider
+from app.llm.groq import GroqProvider
 from app.repositories.document_repository import StoredChunk
 from app.services.chunking import split_into_chunks
 from app.services.retriever import BM25Retriever, tokenize
@@ -46,6 +47,12 @@ def test_factory_sem_chave_cai_para_fake() -> None:
     provider = create_provider(Settings(llm_provider="groq", groq_api_key=""))
 
     assert isinstance(provider, FakeProvider)
+
+
+def test_factory_com_chave_usa_groq() -> None:
+    provider = create_provider(Settings(llm_provider="groq", groq_api_key="chave"))
+
+    assert isinstance(provider, GroqProvider)
 
 
 def test_retriever_encontra_trecho_em_corpus_com_um_so_trecho() -> None:
