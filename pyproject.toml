@@ -1,8 +1,18 @@
 [project]
 name = "lion-api"
-version = "0.2.0"
+dynamic = ["version"]
 description = "API RAG para dúvidas de IRPF com fontes oficiais da RFB (MVP derivado do projeto LION)"
 requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = { attr = "app.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["app*"]
 
 [tool.ruff]
 line-length = 100

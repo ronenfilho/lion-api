@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from app import __version__
 from app.api import ask_routes, document_routes, feedback_routes
 from app.api.errors import register_error_handlers
 from app.config import Settings, load_settings
@@ -37,7 +38,7 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
     app = FastAPI(
         title="LION API",
         description="Assistente RAG para dúvidas de IRPF fundamentado em fontes oficiais da RFB.",
-        version="0.2.0",
+        version=__version__,
     )
     app.state.document_service = DocumentService(documents, settings.chunk_max_chars)
     app.state.ask_service = AskService(
