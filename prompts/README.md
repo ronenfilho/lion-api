@@ -114,3 +114,50 @@ Registro dos pedidos feitos ao agente de código (Claude Code), em ordem, no for
 
 - **Objetivo:** `.github/workflows/ci.yml` com `ruff check`, `ruff format --check` e `pytest` em Python 3.11 e 3.12 a cada push/PR; atualizar backlog, decisões (D07–D13), arquitetura (fluxo e tabela de erros) e README (endpoints, exemplos, **Limites** e **Como a IA foi usada no desenvolvimento**).
 - **Revisão feita:** suíte rodada também em Python 3.11 localmente antes de publicar o workflow; smoke test com `uvicorn` cobrindo 422 por dado pessoal e feedback 201/404.
+
+## 17 — Planejamento da release 1.0 (aulas da Unidade 5)
+
+- **Contexto:** release 0.2 publicada (tag `v0.2.0`, 65 testes, CI em 3.11/3.12). A Unidade 5 pede entrega reprodutível em máquina limpa, Makefile, README final orientado ao desenvolvedor, checklist de submissão e roteiro de demo de 3–5 min.
+- **Objetivo:** implementar a 1.0 (Entrega final): versão em fonte única, configuração por ambiente, teste de rotas registradas, Makefile, Docker, varredura de segredos, README, CHANGELOG, LICENSE, demo, checklist e atualização dos docs.
+- **Estilo:** o do código existente, sem dependências novas salvo indispensável.
+- **Resposta:** alterações no working tree, sem commit, tag nem push; proposta de commits (Conventional Commits) com a árvore de cada passo verificada (`ruff` + `pytest`).
+
+## 18 — Versão única e configuração validada
+
+- **Objetivo:** `app.__version__` como fonte única (FastAPI, `pyproject.toml` dinâmico, Makefile) e teste de que o `/openapi.json` a expõe; `DEFAULT_TOP_K` e `CHUNK_MAX_CHARS` por ambiente com validação; remover o `assert` de `DocumentRepository.create`.
+- **Revisão feita:**
+  - `importlib.metadata` foi descartado: o projeto não é instalado como pacote, e a leitura dependeria de um `pip install -e .` que ninguém roda (D14). A versão dinâmica do `pyproject.toml` foi conferida gerando o *wheel* num ambiente separado.
+  - O `assert` não foi trocado por um `if ... raise`: o registro criado passou a ser montado direto (como no `FeedbackRepository`), o que elimina o caminho de erro e uma consulta.
+  - O primeiro teste de `DEFAULT_TOP_K` passava por acaso: o provedor `fake` cita só um trecho, então `citations` teria 1 item com qualquer `top_k`. Refeito com um provedor que falha (o fallback devolve todos os trechos recuperados), comparando `top_k` 1 e 3.
+  - `LLM_TIMEOUT_SECONDS` vazio derrubava a API com `ValueError` cru; agora vazio usa o padrão e valor inválido gera `ConfigError` com o nome da variável (D15).
+
+## 19 — Teste da aplicação montada (lição da aula 5.2)
+
+- **Contexto:** na aula, os testes passavam com o router fora do `main`. Aqui, todos os testes usavam `create_app` com banco temporário; nenhum olhava o `app.main.app`.
+- **Objetivo:** teste que compara as rotas de `app.main.app` com a lista esperada e chama `/health` e `/openapi.json` nessa aplicação.
+- **Revisão feita:** conferido que o teste falha removendo `include_router(feedback_routes.router)` do `main` (os dois testes novos ficaram vermelhos), e restaurado em seguida (D19).
+
+## 20 — Dependências e Makefile
+
+- **Objetivo:** separar `requirements.txt` (execução) de `requirements-dev.txt` (pytest e Ruff) e **criar o arquivo** `Makefile` no repositório com `help` (padrão), `install`, `run`, `test`, `lint`, `format`, `load-sample`, `docker-build`, `docker-run` e `clean`, usando `.venv` e só ferramentas POSIX (macOS e Linux).
+- **Revisão feita:** o `help` imprimia `$(HOST):$(PORT)` literalmente, porque o texto vem dos comentários `##` lidos pelo `awk`, sem expansão do make; as descrições passaram a ter texto fixo. O README dizia `pip install -r requirements.txt` seguido de `pytest`, o que deixaria de funcionar com a separação; ajustado no mesmo passo.
+
+## 21 — Docker
+
+- **Objetivo:** `Dockerfile` com `python:3.12-slim`, usuário sem privilégios, só dependências de execução, `HEALTHCHECK` no `/health` e `DATABASE_PATH` em volume; `.dockerignore`; job de CI com build e smoke test.
+- **Revisão feita:** a imagem slim não tem `curl`, então o `HEALTHCHECK` usa `urllib`. No smoke test, o `curl --retry-connrefused` não cobre a conexão resetada pelo proxy do Docker enquanto o uvicorn sobe (`curl: (56) Recv failure`, visto na validação); o CI usa `--retry-all-errors` (D18).
+
+## 22 — Validação em máquina limpa e da imagem
+
+- **Objetivo:** copiar a árvore de trabalho para um diretório temporário num servidor Linux (Ubuntu, Python 3.12.3, sem `.venv`), seguir só o README (`make install`, `make test`, `make lint`, `make run` + `make load-sample`) e validar a imagem (`make docker-build`, `make docker-run`, smoke test com `curl`), removendo container, imagem, volume e diretório no fim.
+- **Resultado:** 83 testes verdes e Ruff sem erros no ambiente novo; API respondendo `/health`, `/ask` com citação, "não encontrei base" para pergunta fora do corpus e 404 de feedback. No container: `/health` ok, `HEALTHCHECK` `healthy`, processo como `lion` (uid 10001), banco em `/data` e documentos preservados após reiniciar o container com o mesmo volume; `/openapi.json` com versão `1.0.0`; CPF bloqueado com 422.
+
+## 23 — Varredura de segredos
+
+- **Objetivo:** procurar no histórico (todas as refs, reflog e objetos inalcançáveis) e na árvore padrões de chave (`gsk_`, `AIza`, `sk-`, `AKIA`, chaves privadas, `api_key=`/`token=`/`secret=` com valor, `Bearer`) e conferir se algum `.env` foi versionado.
+- **Resultado:** nenhuma ocorrência; o único arquivo `.env*` no histórico é o `.env.example`, sem valores.
+
+## 24 — README final, CHANGELOG, licença, demo e checklist
+
+- **Objetivo:** README orientado ao desenvolvedor (problema e solução, Mermaid embutido, stack, como rodar com Makefile e Docker, testes, endpoints com `curl`, configuração, limites e próximos passos, uso de IA com os bugs reais encontrados na revisão), `CHANGELOG.md` (Keep a Changelog + SemVer), `LICENSE` MIT, `docs/demo.md` (3–5 min), `docs/entrega.md` e atualização de backlog, decisões (D14–D20) e arquitetura.
+- **Restrição:** texto objetivo, exemplos copiados de uma execução real (não inventados), sem criar tag nem release.

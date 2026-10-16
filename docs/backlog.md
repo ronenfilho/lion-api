@@ -33,8 +33,23 @@
 
 ## Release 1.0 — Entrega final
 
-- [ ] Provedor real (`groq` já implementado na 0.1, falta testar com chave real; `gemini` opcional) configurável por `.env`, com fallback para `fake` se faltar chave.
-- [ ] `Dockerfile` e instrução de execução.
-- [ ] README completo (objetivo, stack, como rodar, exemplos `curl`, arquitetura, uso de IA no desenvolvimento).
-- [ ] `prompts/` com os prompts usados no desenvolvimento.
-- [ ] Repositório público, histórico em Conventional Commits, tag `v1.0.0`.
+- [x] **Reprodutibilidade**
+  - `Makefile` com `install`, `run`, `test`, `lint`, `format`, `load-sample`, `docker-build`, `docker-run`, `clean` e `help` (padrão), em macOS e Linux (D17).
+  - Dependências de execução (`requirements.txt`) separadas das de desenvolvimento (`requirements-dev.txt`) (D16).
+  - Setup validado em máquina limpa (servidor Linux, sem `.venv` prévio), seguindo só o README.
+- [x] **Docker** (D18)
+  - `Dockerfile` com `python:3.12-slim`, usuário sem privilégios, só dependências de execução, `HEALTHCHECK` no `/health` e banco em volume (`DATABASE_PATH=/data/lion.sqlite3`); `.dockerignore`.
+  - Build e smoke test da imagem no CI (`/health`, carga do corpus e `/ask`).
+- [x] **Configuração**
+  - Versão em fonte única (`app.__version__`), exposta no `/openapi.json` (D14).
+  - `DEFAULT_TOP_K` (1 a 10) e `CHUNK_MAX_CHARS` (100 a 4000) por ambiente; valor inválido impede a API de subir com `ConfigError` nomeando a variável (D15).
+  - `DocumentRepository.create` sem `assert`.
+- [x] **Aplicação montada:** teste que confere as rotas registradas em `app.main.app`, o objeto do uvicorn (D19).
+- [x] **Documentação de entrega**
+  - README final orientado ao desenvolvedor (problema e solução, Mermaid, como rodar e testar, endpoints com `curl`, configuração, limites e próximos passos, uso de IA no desenvolvimento).
+  - `CHANGELOG.md` (Keep a Changelog), `LICENSE` (MIT), [roteiro de demo](demo.md) e [checklist de entrega](entrega.md) (D20).
+  - `prompts/` com os prompts usados no desenvolvimento (01–24).
+- [x] Varredura de segredos no histórico e na árvore, sem ocorrências.
+- [x] Suíte com 83 testes; Ruff sem erros.
+- [ ] Provedor real (`groq`) validado com chave real — implementado e testado com HTTP simulado; a validação com chave fica como próximo passo (`gemini` segue opcional).
+- [ ] Tag `v1.0.0` no commit de entrega (repositório público e histórico em Conventional Commits já atendidos).

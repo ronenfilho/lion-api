@@ -65,3 +65,19 @@ Os serviços levantam exceções de domínio (`app/exceptions.py`) sem conhecer 
 | `SensitiveDataError` | 422 | `Bloqueado: o campo 'pergunta' parece conter dado pessoal (CPF). …` |
 
 Erros de validação do payload continuam no formato padrão do FastAPI (422 com a lista de campos).
+
+## Montagem e execução
+
+- `app.main.create_app(settings, provider)` monta conexão SQLite, repositórios, serviços (em `app.state`), handlers de erro e routers. `app.main.app = create_app()` é o objeto servido pelo uvicorn; um teste confere as rotas registradas nele (D19).
+- `load_settings()` lê o ambiente e o `.env` e valida os valores (`ConfigError` impede a API de subir com configuração inválida — D15). A versão vem de `app.__version__` (D14).
+- Execução local: `make run` (uvicorn com reload). Container: `Dockerfile` com `python:3.12-slim`, usuário sem privilégios, banco em `/data` (volume) e `HEALTHCHECK` no `/health` (D18).
+
+```mermaid
+flowchart LR
+    Dev([make run / docker run]) --> U[uvicorn app.main:app]
+    U --> CA["create_app()"]
+    CA --> S[load_settings<br/>ambiente + .env]
+    CA --> C[(SQLite<br/>DATABASE_PATH)]
+    CA --> PR[create_provider<br/>fake ou groq]
+    CA --> RT[routers + handlers de erro]
+```

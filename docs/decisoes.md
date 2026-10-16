@@ -63,3 +63,34 @@
 ## D13 — Testes isolados do ambiente local e CI
 - **Decisão:** `tests/conftest.py` força `DATABASE_PATH=:memory:` e `LLM_PROVIDER=fake` antes de qualquer teste importar `app.main` (que monta a aplicação no import, para o uvicorn). GitHub Actions roda `ruff check`, `ruff format --check` e `pytest` em Python 3.11 e 3.12 a cada push e PR.
 - **Consequências:** a suíte não lê o `.env` nem escreve em `var/` do desenvolvedor, e roda igual na máquina e no CI.
+
+## D14 — Versão em fonte única (release 1.0)
+- **Contexto:** a versão estava repetida no `pyproject.toml` e em `app/main.py` e já tinha ficado defasada uma vez (o e-book da Unidade 5 aponta o mesmo risco para dependências: "escolher uma fonte de verdade").
+- **Decisão:** `app/__init__.py` define `__version__`. O FastAPI o usa no OpenAPI; o `pyproject.toml` declara `dynamic = ["version"]` e lê `app.__version__` via setuptools; o Makefile extrai o valor com `sed` para a tag da imagem Docker. Descartado `importlib.metadata`: o projeto não é instalado como pacote (roda do diretório), então a leitura dependeria de um `pip install -e .` que ninguém faz.
+- **Consequências:** atualizar a versão é editar uma linha. Testes conferem que o `/openapi.json` expõe `__version__` e que o `pyproject.toml` não volta a ter versão fixa.
+
+## D15 — Configuração validada na inicialização
+- **Decisão:** `DEFAULT_TOP_K` (1 a 10, o mesmo limite do `top_k` da requisição) e `CHUNK_MAX_CHARS` (100 a 4000) passam a vir do ambiente. `Settings.__post_init__` valida os intervalos e `LLM_TIMEOUT_SECONDS > 0`; texto não numérico vira `ConfigError` (subclasse de `ValueError`) com o nome da variável. Variável vazia usa o padrão.
+- **Consequências:** configuração errada impede a API de subir com mensagem clara, em vez de falhar na primeira requisição. A validação vale também para `Settings` criado direto nos testes.
+
+## D16 — Dependências de execução separadas das de desenvolvimento
+- **Decisão:** `requirements.txt` só com o necessário para executar (FastAPI, uvicorn, Pydantic, python-dotenv, httpx, rank-bm25); `requirements-dev.txt` inclui o primeiro (`-r`) e acrescenta pytest e Ruff. `make install` e o CI usam o de desenvolvimento; o `Dockerfile`, só o de execução. Versões continuam fixadas com `==` e o `requirements*.txt` é a fonte única de dependências (o `pyproject.toml` não as declara).
+- **Consequências:** imagem menor e sem ferramentas de teste. `httpx` fica em execução porque o `GroqProvider` e o `scripts/load_sample.py` o usam.
+
+## D17 — Makefile como interface de desenvolvimento
+- **Decisão:** alvos `help` (padrão, gerado dos comentários `##`), `install`, `run`, `test`, `lint`, `format`, `load-sample`, `docker-build`, `docker-run` e `clean`, chamando os binários de `.venv/bin` diretamente (sem `source`). `PYTHON`, `PORT`, `HOST` e `BASE_URL` são sobrescrevíveis. Só ferramentas POSIX (`sed`, `awk`, `find`), sem extensões do GNU, para funcionar em macOS e Linux.
+- **Consequências:** o README e o roteiro de demo usam os mesmos comandos; `make lint` é exatamente o que o CI roda. `clean` não apaga `.venv` nem `var/`.
+
+## D18 — Imagem Docker enxuta e sem root
+- **Decisão:** `python:3.12-slim` (mesma versão do ambiente local; o README declara 3.11+ e o CI testa as duas). Usuário `lion` (uid 10001) sem privilégios; `DATABASE_PATH=/data/lion.sqlite3` com `/data` declarado como volume; `HEALTHCHECK` no `/health` com `urllib` da biblioteca padrão, porque a imagem slim não tem `curl`. A imagem leva `data/` e `scripts/` para permitir `docker exec lion-api python scripts/load_sample.py`; testes, docs e `.env` ficam fora (`.dockerignore`).
+- **Consequências:** volume nomeado herda o dono `lion` do diretório da imagem; *bind mount* de pasta do host precisa permitir escrita para o uid 10001. O CI constrói a imagem e faz smoke test a cada push.
+
+## D19 — Teste da aplicação real servida pelo uvicorn
+- **Contexto:** na aula 5.2, a suíte passava, mas o router não estava incluído no `main`. Aqui, os testes usam `create_app` com banco temporário, e nenhum conferia o objeto `app.main.app`.
+- **Decisão:** `tests/test_app.py` compara o conjunto (método, rota) de `app.main.app` com a lista esperada e confere `/health` e `/openapi.json` nessa aplicação.
+- **Consequências:** router esquecido ou rota nova sem atualizar o teste falham na hora (conferido removendo o router de feedback: os dois testes falharam).
+
+## D20 — Roteiro de demo e checklist de entrega versionados
+- **Contexto:** na aula 5.2, o roteiro de demo ficou fora do Git (`.gitignore`), por ser material interno.
+- **Decisão:** aqui o roteiro (`docs/demo.md`) e o checklist (`docs/entrega.md`) são versionados, porque fazem parte da entrega para avaliadores e não contêm nada sensível.
+- **Consequências:** precisam ser atualizados junto com a API (ex.: número de testes, comandos do Makefile).
