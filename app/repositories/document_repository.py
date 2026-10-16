@@ -29,21 +29,25 @@ class DocumentRepository:
         self._conn = conn
 
     def create(self, title: str, source: str, chunks: list[str]) -> DocumentOut:
-        """Grava o documento e seus trechos numa única transação."""
-        now = datetime.now(UTC).isoformat()
+        """Grava o documento e seus trechos numa única transação e devolve o registro criado."""
+        created_at = datetime.now(UTC)
         with self._conn:
             cur = self._conn.execute(
                 "INSERT INTO documents (title, source, created_at) VALUES (?, ?, ?)",
-                (title, source, now),
+                (title, source, created_at.isoformat()),
             )
             document_id = cur.lastrowid
             self._conn.executemany(
                 "INSERT INTO chunks (document_id, position, text) VALUES (?, ?, ?)",
                 [(document_id, i, text) for i, text in enumerate(chunks)],
             )
-        document = self.get(document_id)
-        assert document is not None
-        return document
+        return DocumentOut(
+            id=document_id,
+            title=title,
+            source=source,
+            chunk_count=len(chunks),
+            created_at=created_at,
+        )
 
     def list_all(self) -> list[DocumentOut]:
         """Lista todos os documentos, do mais antigo ao mais novo."""

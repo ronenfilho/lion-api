@@ -1,5 +1,8 @@
 from fastapi.testclient import TestClient
 
+from app.repositories.database import connect
+from app.repositories.document_repository import DocumentRepository
+
 DOC = {
     "title": "Documento de teste",
     "source": "https://exemplo.gov.br",
@@ -52,3 +55,12 @@ def test_remove_documento_retorna_204_e_tira_trechos_do_indice(client: TestClien
     assert client.get("/documents").json() == []
     assert client.post("/ask", json=question).json()["citations"] == []
     assert client.delete(f"/documents/{created['id']}").status_code == 404
+
+
+def test_repositorio_devolve_na_criacao_o_mesmo_registro_gravado() -> None:
+    repository = DocumentRepository(connect(":memory:"))
+
+    created = repository.create("Lei X", "https://exemplo.gov.br", ["trecho 1", "trecho 2"])
+
+    assert created.chunk_count == 2
+    assert repository.get(created.id) == created
