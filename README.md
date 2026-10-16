@@ -16,7 +16,7 @@ FastAPI · Pydantic v2 · SQLite · BM25 · LLM via Groq (ou provedor `fake`, se
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # execução + pytest/ruff (só execução: requirements.txt)
 cp .env.example .env          # preencha as chaves se for usar um LLM real
 uvicorn app.main:app --reload
 ```
