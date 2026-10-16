@@ -1,0 +1,24 @@
+# Só o necessário para executar: app/, data/, scripts/ e requirements.txt
+.git
+.github
+.venv
+venv
+var
+*.sqlite3
+*.db
+.env
+.env.*
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+tests
+docs
+prompts
+Makefile
+*.md
+.DS_Store
+.vscode
+.idea

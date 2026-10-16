@@ -37,3 +37,25 @@ jobs:
 
       - name: Pytest
         run: pytest -q
+
+  docker:
+    name: Imagem Docker (build e smoke test)
+    runs-on: ubuntu-latest
+    needs: qualidade
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker build -t lion-api:ci .
+
+      - name: Smoke test
+        run: |
+          docker run -d --name lion-api-ci -p 8000:8000 lion-api:ci
+          curl -fsS --retry 30 --retry-all-errors --retry-delay 1 localhost:8000/health
+          docker exec lion-api-ci python scripts/load_sample.py
+          curl -fsS -X POST localhost:8000/ask -H 'content-type: application/json' \
+            -d '{"question": "Qual o limite de dedução com educação?"}' | grep -q '"grounded":true'
+
+      - name: Logs do container
+        if: always()
+        run: docker logs lion-api-ci || true
