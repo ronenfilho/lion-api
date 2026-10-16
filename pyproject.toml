@@ -3,6 +3,7 @@ name = "lion-api"
 dynamic = ["version"]
 description = "API RAG para dúvidas de IRPF com fontes oficiais da RFB (MVP derivado do projeto LION)"
 requires-python = ">=3.11"
+license = { text = "MIT" }
 
 [build-system]
 requires = ["setuptools>=61"]
